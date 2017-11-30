@@ -1,0 +1,300 @@
+﻿
+@{
+    ViewBag.Title = "Curso";
+}
+
+@section Scripts{
+    <style type="text/css">
+        body {
+            margin: 20px;
+            font-family: "Arial", "Helvetica", "sans-serif";
+        }
+
+        label {
+            width: 80px;
+            display: inline-block;
+        }
+
+        button {
+            display: inline-block;
+            outline: none;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            padding: .4em 1.1em .4em;
+            color: #fef4e9;
+            border: solid 1px #006fb9;
+            background: #1276bb;
+        }
+
+            button:hover {
+                text-decoration: none;
+                background: #282828;
+                border: solid 1px #000;
+            }
+
+        table {
+            padding-top: 1em;
+        }
+
+        thead, tfoot {
+            font-weight: 600;
+        }
+
+        th, td {
+            padding: .1em .5em;
+            text-align: left;
+        }
+
+            td li, td ul {
+                margin: 0;
+                padding: 0;
+            }
+
+            td li {
+                display: inline;
+            }
+
+                td li:after {
+                    content: ',';
+                }
+    </style>
+
+    <script src="~/Scripts/knockout-3.4.2.js"></script>
+    <script src="~/Scripts/knockout-3.4.2.debug.js"></script>
+
+
+    <script type="text/javascript">
+        function formatCurrency(value) {
+            return "$ " + value;
+        }
+        function ProtoViewModel() {
+            var self = this;
+
+           
+
+            self.CursoID = ko.observable("");
+            self.Titulo = ko.observable("");
+            self.Creditos = ko.observable("");
+            self.Custo = ko.observable("");
+
+            var Curso = {
+                CursoID : self.CursoID,
+                Titulo : self.Titulo,
+                Creditos : self.Creditos,
+                Custo : self.Custo
+            };
+
+            self.Curso = ko.observable("");
+            self.Cursos = ko.observableArray("");
+
+            $.ajax({
+                url: '@Url.Action("RetornaTodosCursos", "Curso")',
+                cache: false,
+                type: 'GET',
+                contentType: 'application/json;charset=utf-8',
+                data: {},
+                success: function (data) {
+                    self.Cursos(data);
+                },
+            });
+
+            self.Total = ko.computed(function () {
+                var soma = 0;
+                var arr = self.Cursos();
+
+                for (var i = 0; i < arr.length; i++) {
+                    soma += arr[i].Custo;
+                }
+
+                return soma;
+            });
+
+            self.create = function () {
+                if (Curso.Titulo() && Curso.Creditos() && Curso.Custo()) {
+
+                    $.ajax({
+                        url: '@Url.Action("AddCurso", "Curso")',
+                        cache: false,
+                        type: 'POST',
+                        contentType: 'application/json;charset=utf-8',
+                        data: ko.toJSON(Curso),
+                        success: function (data) {
+                            self.Cursos.push(data);
+
+                            self.Titulo = "";
+                            self.Creditos = "";
+                            self.Custo = "";
+                        },
+                    }).fail(
+                        function (hxr, textoStatus, err) {
+                            alert(err);
+                        });
+                }
+                else
+                    alert('Por favor informe os dados do curso.');
+            };
+
+            self.delete = function (Curso) {
+
+                if (confirm("Tem certeza que deseja excluir este registro?")) {
+                    var cursoID = Curso.CursoID;
+
+                    $.ajax({
+                        url: "Curso/Excluir/",
+                        type: 'post',
+                    //    contentType: 'application/json;charset=utf-8',
+                        data: { cursoID: cursoID },
+                        success: function (data) {
+                            if(data.Status)
+                                self.Cursos.remove(Curso);
+                        },
+                    }).fail(
+                        function (hxr, textoStatus, err) {
+                            alert(err);
+                        });
+                }
+            };
+
+            self.edit = function (Curso) {
+                self.Cursos(Curso);
+            };
+
+            self.update = function () {
+                var curso = self.Curso();
+
+                    $.ajax({
+                        url: '@Url.Action("Atualizar", "Curso")',
+                        cache: false,
+                        type: 'PUT',
+                        contentType: 'application/json;charset=utf-8',
+                        data: ko.toJSON(Curso),
+                        success: function (data) {
+                            self.Cursos.removeAll(Curso);
+                            self.Cursos(data);
+                            self.Curso(null);
+                            alert("Registro atualizado!");
+                        },
+                    }).fail(
+                        function (hxr, textoStatus, err) {
+                            alert(err);
+                        });
+
+            };
+
+            self.reset = function () {
+                self.Titulo = "";
+                self.Creditos = "";
+                self.Custo = "";
+            };
+
+            self.cancel = function () {
+                self.Curso(null);
+            };
+
+
+
+        };
+        var viewModel = new ProtoViewModel();
+        ko.applyBindings(viewModel);
+
+    </script>
+}
+
+<div id="body">
+    <h2>Knockout CRUD Operacao com MVC</h2>
+
+    <h3>Lista de Cursos</h3>
+
+    <table id="cursos1" data-bind="visible: Cursos().length > 0">
+        <thead>
+            <tr>
+                <th>CursoID</th>
+                <th>Título</th>
+                <th>Creditos</th>
+                <th>Custo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody data-bind="foreach: Cursos">
+            <tr>
+                <td data-bind="text: CursoID"></td>
+                <td data-bind="text: Titulo"></td>
+                <td data-bind="text: Creditos"></td>
+                <td data-bind="text: formatCurrency(Custo)"></td>
+
+                <td>
+                    <button data-bind="click: $root.edit">Editar</button>
+                    <button data-bind="click: $root.delete">Excluir</button>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td></td>
+                <td></td>
+                <td>Total: </td>
+                <td data-bind="text: formatCurrency($root.Total())"></td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+    <br />
+    <div style="border-top: solid 2px #282828; width: 430px; height: 10px"></div>
+
+    <div data-bind="if: Curso">
+        <div>
+            <h2>Atualizar Curso</h2>
+        </div>
+        <div>
+            <label for="CursoID" data-bind="visible: false">ID</label>
+            <label data-bind="text: Curso().CursoID, visible: false"></label>
+        </div>
+        <div>
+            <label for="Titulo">Título</label>
+            <input data-bind="value: Curso().Titulo" type="text" title="Título" />
+        </div>
+        <div>
+            <label for="Creditos">Créditos</label>
+            <input data-bind="value: Curso().Creditos" type="text" title="Créditos" />
+        </div>
+        <div>
+            <label for="Custo">Custo</label>
+            <input data-bind="value: Curso().Custo" type="text" title="Custo" />
+        </div>
+        <br />
+        <div>
+            <button data-bind="click: $root.update">Atualizar</button>
+            <button data-bind="click: $root.cancel">Cancelar</button>
+        </div>
+    </div>
+    <br />
+    <div data-bind="ifnot: Curso()">
+        <div>
+            <h2>Adicionar Novo Curso</h2>
+        </div>
+        <div>
+            <label for="Titulo">Título</label>
+            <input data-bind="value: $root.Titulo" type="text" title="Título" />
+        </div>
+        <div>
+            <label for="Creditos">Créditos</label>
+            <input data-bind="value: $root.Creditos" type="text" title="Créditos" />
+        </div>
+        <div>
+            <label for="Creditos">Créditos</label>
+            <input data-bind="value: Curso().Creditos" type="text" title="Créditos" />
+        </div>
+        <div>
+            <label for="Custo">Custo</label>
+            <input data-bind="value: $root.Custo" type="text" title="Custo" />
+        </div>
+        <br />
+        <div>
+            <button data-bind="click: $root.create">Salvar</button>
+            <button data-bind="click: $root.reset">Limpar</button>
+        </div>
+    </div>
+</div>
+
+
