@@ -40,7 +40,7 @@ namespace ParmezaniUniversidade.Controllers
             return Json(null, JsonRequestBehavior.AllowGet);
         }
 
-        [HttpPost]
+        [HttpDelete]
         public JsonResult Excluir(int cursoID)
         {
             if (cursoRepositorio.Excluir(cursoID))
